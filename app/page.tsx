@@ -1,7 +1,7 @@
+"use client";
+
 import React, { useMemo, useState } from "react";
 import { AlertCircle, Calculator, Info, Github } from "lucide-react";
-
-"use client";
 
 /**
  * PURK + SCN1 (PURK+) Risk Calculator — v2 (polished UI)
