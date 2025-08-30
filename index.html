@@ -711,20 +711,48 @@
 
     function drawPURKPlusKaplanMeier(){
       const timePoints=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20];
-      const lowRisk={x:timePoints,y:[100,100,99.5,99.3,99.2,99.0,98.8,98.5,98.3,98.0,97.8,97.5,97.3,97.0,96.8,96.5,96.3,96.0,95.8,95.5,95.3],name:'Low Risk',mode:'lines',line:{color:'#10a37f',width:2.5},hovertemplate:'Low Risk<br>Time: %{x} years<br>Survival: %{y:.1f}%<extra></extra>'};
-      const intermediateRisk={x:timePoints,y:[100,95,90,85,82,78,75,70,65,60,55,50,45,40,35,30,25,20,15,10,5],name:'Intermediate Risk',mode:'lines',line:{color:'#f39c12',width:2.5},hovertemplate:'Intermediate Risk<br>Time: %{x} years<br>Survival: %{y:.1f}%<extra></extra>'};
-      const highRisk={x:timePoints,y:[100,85,70,55,45,35,28,22,18,15,12,10,8,6,5,4,3,2,1,0.5,0],name:'High Risk',mode:'lines',line:{color:'#e74c3c',width:2.5},hovertemplate:'High Risk<br>Time: %{x} years<br>Survival: %{y:.1f}%<extra></extra>'};
-
+    
+      const lowRisk={
+        x:timePoints,
+        y:[100,100,99.5,99.3,99.2,99.0,98.8,98.5,98.3,98.0,97.8,97.5,97.3,97.0,96.8,96.5,96.3,96.0,95.8,95.5,95.3],
+        name:'Low Risk',
+        mode:'lines',
+        line:{color:'#10a37f',width:2.5},
+        hovertemplate:'Low Risk<br>Time: %{x} years<br>Survival: %{y:.1f}%<extra></extra>'
+      };
+    
+      const intermediateRisk={
+        x:timePoints,
+        y:[100,95,90,85,82,78,75,70,65,60,55,50,45,40,35,30,25,20,15,10,5],
+        name:'Intermediate Risk',
+        mode:'lines',
+        line:{color:'#f39c12',width:2.5},
+        hovertemplate:'Intermediate Risk<br>Time: %{x} years<br>Survival: %{y:.1f}%<extra></extra>'
+      };
+    
+      const highRisk={
+        x:timePoints,
+        y:[100,85,70,55,45,35,28,22,18,15,12,10,8,6,5,4,3,2,1,0.5,0],
+        name:'High Risk',
+        mode:'lines',
+        line:{color:'#e74c3c',width:2.5},
+        hovertemplate:'High Risk<br>Time: %{x} years<br>Survival: %{y:.1f}%<extra></extra>'
+      };
+    
       const layout={
         xaxis:{title:'Time from Diagnosis (Years)',showgrid:true,gridcolor:'#e5e7eb',range:[0,20],zeroline:false},
         yaxis:{title:'RRT-Free Survival (%)',showgrid:true,gridcolor:'#e5e7eb',range:[0,100],zeroline:false},
-        hovermode:'x unified', showlegend:true,
+        hovermode:'x unified',
+        showlegend:true,
         legend:{x:0.7,y:0.9,bgcolor:'rgba(255,255,255,0.9)',bordercolor:'#e5e7eb',borderwidth:1},
-        margin:{l:60,r:30,t:30,b:60}, plot_bgcolor:'#fafafa', paper_bgcolor:'transparent',
-        font:{family:'var(--font-sans)', size:12, color:'#2d333a'},        }]
+        margin:{l:60,r:30,t:30,b:60},
+        plot_bgcolor:'#fafafa',
+        paper_bgcolor:'transparent',
+        font:{family:'var(--font-sans)', size:12, color:'#2d333a'}
       };
-      Plotly.newPlot('purkplus-km-chart',[lowRisk,intermediateRisk,highRisk],layout,{responsive:true});
-    }
+
+  Plotly.newPlot('purkplus-km-chart',[lowRisk,intermediateRisk,highRisk],layout,{responsive:true});
+}
   </script>
 </body>
 </html>
