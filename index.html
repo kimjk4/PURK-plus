@@ -721,11 +721,7 @@
         hovermode:'x unified', showlegend:true,
         legend:{x:0.7,y:0.9,bgcolor:'rgba(255,255,255,0.9)',bordercolor:'#e5e7eb',borderwidth:1},
         margin:{l:60,r:30,t:30,b:60}, plot_bgcolor:'#fafafa', paper_bgcolor:'transparent',
-        font:{family:'var(--font-sans)', size:12, color:'#2d333a'},
-        annotations:[{
-          x:1,y:95,xref:'x',yref:'y',text:'1-year recalibration',showarrow:true,arrowhead:2,ax:40,ay:-30,
-          bordercolor:'#da7756',borderwidth:1.5,borderpad:4,bgcolor:'rgba(218,119,86,0.1)',opacity:.9,font:{size:11, color:'#2d333a'}
-        }]
+        font:{family:'var(--font-sans)', size:12, color:'#2d333a'},        }]
       };
       Plotly.newPlot('purkplus-km-chart',[lowRisk,intermediateRisk,highRisk],layout,{responsive:true});
     }
