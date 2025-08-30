@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PURK Score Calculator - Posterior Urethral Valve Risk Assessment</title>
+
+  <!-- Plotly -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.27.1/plotly.min.js"></script>
+
+  <!-- Inter (OpenAI-like), with strong system fallbacks -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    :root{
+      --primary:#da7756;
+      --primary-light:#e89578;
+      --primary-dark:#c65d3a;
+      --success:#10a37f;
+      --warning:#f39c12;
+      --danger:#e74c3c;
+      --text-primary:#1f2328;
+      --text-secondary:#6e7781;
+      --text-tertiary:#9aa2aa;
+      --border:#e5e7eb;
+      --background:#ffffff;
+      --background-secondary:#f7f7f8;
+      --background-hover:#f9fafb;
+      --shadow-sm:0 1px 2px rgba(0,0,0,.05);
+      --shadow:0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
+      --shadow-lg:0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05);
+      --radius:8px;
+      --radius-lg:12px;
+      --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      --letter-tight:-0.015em;
+    }
+
+    body{
+      font-family:var(--font-sans);
+      background:var(--background);
+      color:var(--text-primary);
+      line-height:1.55;
+      min-height:100vh;
+      text-rendering:optimizeLegibility;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    .container{ max-width:1200px; margin:0 auto; padding:24px; }
+
+    .header{
+      text-align:center;
+      padding:48px 24px 32px;
+      border-bottom:1px solid var(--border);
+      margin-bottom:32px;
+      background:linear-gradient(180deg,#ffffff 0%, #fafafa 100%);
+    }
+    .header h1{
+      font-size:2rem; font-weight:600; color:var(--text-primary);
+      margin-bottom:8px; letter-spacing:var(--letter-tight);
+    }
+    .header p{
+      color:var(--text-secondary); font-size:1rem; max-width:660px; margin:0 auto;
+    }
+
+    .calculator-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(400px, 1fr));
+      gap:24px; margin-bottom:24px;
+    }
+
+    .card{
+      background:var(--background);
+      border:1px solid var(--border);
+      border-radius:var(--radius-lg);
+      padding:24px;
+      transition:box-shadow .2s ease, border-color .2s ease, transform .2s ease;
+      position:relative;
+    }
+    .card:hover{ box-shadow:var(--shadow-lg); border-color:var(--primary-light); }
+
+    .card-header{
+      display:flex; align-items:center; gap:12px; margin-bottom:20px;
+      padding-bottom:16px; border-bottom:1px solid var(--border);
+    }
+    .card-icon{
+      width:40px; height:40px; background:var(--background-secondary);
+      border-radius:var(--radius); display:flex; align-items:center; justify-content:center;
+    }
+    .card-icon svg{ width:22px; height:22px; stroke:#6b7280; }
+
+    .card-title{ font-size:1.125rem; font-weight:600; color:var(--text-primary); margin-bottom:2px; letter-spacing:var(--letter-tight); }
+    .card-subtitle{ color:var(--text-secondary); font-size:.875rem; }
+
+    .form-group{ margin-bottom:16px; }
+    .form-group label{ display:block; margin-bottom:6px; font-weight:500; color:var(--text-primary); font-size:.875rem; }
+
+    .checkbox-wrapper{
+      position:relative; display:flex; align-items:flex-start; gap:12px;
+      padding:12px; background:var(--background-secondary); border:1px solid var(--border);
+      border-radius:var(--radius); cursor:pointer; transition:all .2s ease;
+    }
+    .checkbox-wrapper:hover{ background:var(--background-hover); border-color:var(--primary-light); }
+    .checkbox-wrapper input[type="checkbox"]{
+      width:18px; height:18px; margin-top:2px; cursor:pointer; accent-color:var(--primary); flex-shrink:0;
+    }
+    .checkbox-label{ flex:1; color:var(--text-primary); font-size:.9375rem; cursor:pointer; user-select:none; }
+
+    .input-field{
+      width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius);
+      font-size:.9375rem; background:var(--background); color:var(--text-primary); transition:border-color .2s ease, box-shadow .2s ease;
+    }
+    .input-field:focus{ outline:none; border-color:var(--primary); box-shadow:0 0 0 3px rgba(218,119,86,.1); }
+
+    .input-group{ display:flex; gap:8px; }
+    .input-group select{
+      padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius);
+      background:var(--background); cursor:pointer; font-size:.875rem; color:var(--text-primary); transition:border-color .2s ease;
+    }
+    .input-group select:focus{ outline:none; border-color:var(--primary); }
+
+    .btn{
+      width:100%; padding:10px 16px; background:var(--primary); color:white; border:none;
+      border-radius:var(--radius); font-size:.9375rem; font-weight:600; cursor:pointer; transition:transform .15s ease, background .2s ease, box-shadow .2s ease;
+      margin-top:20px; letter-spacing:.005em;
+    }
+    .btn:hover{ background:var(--primary-dark); transform:translateY(-1px); box-shadow:var(--shadow); }
+    .btn:active{ transform:translateY(0); }
+
+    .result-section{ margin-top:24px; padding-top:20px; border-top:1px solid var(--border); animation:fadeIn .3s ease; }
+    @keyframes fadeIn{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
+
+    .score-display{
+      text-align:center; padding:24px; background:var(--background-secondary); border-radius:var(--radius-lg); margin-bottom:16px;
+    }
+    .score-value{ font-size:2.5rem; font-weight:700; color:var(--primary); margin-bottom:8px; letter-spacing:var(--letter-tight); }
+    .score-label{ color:var(--text-secondary); font-size:.8125rem; text-transform:uppercase; letter-spacing:.06em; }
+
+    .risk-badge{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 12px; border-radius:999px; font-weight:600; font-size:.8125rem; text-transform:uppercase; letter-spacing:.05em; margin:12px 0; border:1px solid transparent;
+    }
+    .risk-badge svg{ width:14px; height:14px; }
+    .risk-low{ background:rgba(16,163,127,.08); color:var(--success); border-color:rgba(16,163,127,.2); }
+    .risk-intermediate{ background:rgba(243,156,18,.08); color:var(--warning); border-color:rgba(243,156,18,.25); }
+    .risk-high{ background:rgba(231,76,60,.08); color:var(--danger); border-color:rgba(231,76,60,.25); }
+
+    .stats-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:12px; margin-top:16px; }
+    .stat-card{ background:var(--background-secondary); padding:12px; border-radius:var(--radius); text-align:center; border:1px solid var(--border); }
+    .stat-value{ font-size:1.25rem; font-weight:600; color:var(--text-primary); margin-bottom:4px; }
+    .stat-label{ font-size:.72rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.05em; }
+
+    .info-panel{
+      background:var(--background-secondary); border-left:3px solid var(--primary);
+      padding:16px; border-radius:var(--radius); margin-top:16px;
+    }
+    .info-panel strong{ color:var(--text-primary); display:block; margin-bottom:8px; font-size:.875rem; }
+    .info-panel p{ color:var(--text-secondary); font-size:.875rem; line-height:1.6; margin:4px 0; }
+
+    .matrix-table{
+      width:100%; border-collapse:separate; border-spacing:0; margin-top:20px; background:var(--background);
+      border:1px solid var(--border); border-radius:var(--radius); overflow:hidden;
+    }
+    .matrix-table th,.matrix-table td{
+      padding:12px; text-align:center; border-right:1px solid var(--border); border-bottom:1px solid var(--border); font-size:.875rem;
+    }
+    .matrix-table th{ background:var(--background-secondary); font-weight:600; color:var(--text-primary); }
+    .matrix-table td{ font-weight:500; transition:background .2s ease, outline-color .2s ease; }
+    .matrix-table tbody tr:hover td{ background:var(--background-hover); }
+    .matrix-table th:last-child,.matrix-table td:last-child{ border-right:none; }
+    .matrix-table tbody tr:last-child td{ border-bottom:none; }
+    .cell-low{ background:rgba(16,163,127,.05); color:var(--success); }
+    .cell-intermediate{ background:rgba(243,156,18,.05); color:var(--warning); }
+    .cell-high{ background:rgba(231,76,60,.05); color:var(--danger); }
+
+    .tabs{
+      display:flex; gap:4px; margin-bottom:20px; border-bottom:1px solid var(--border); padding:0 4px;
+    }
+    .tab{
+      padding:12px 16px; background:none; border:none; cursor:pointer; font-weight:600; color:var(--text-secondary);
+      font-size:.9375rem; transition:color .2s ease, border-color .2s ease; border-bottom:2px solid transparent; margin-bottom:-1px;
+    }
+    .tab:hover{ color:var(--text-primary); }
+    .tab.active{ color:var(--primary); border-bottom-color:var(--primary); }
+
+    .tab-content{ display:none; animation:fadeIn .3s ease; }
+    .tab-content.active{ display:block; }
+
+    .chart-container{ background:var(--background-secondary); border-radius:var(--radius); padding:20px; margin-top:16px; }
+
+    /* Tooltip (SVG icon trigger) */
+    .tooltip{
+      position:relative; display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px;
+      margin-left:4px; vertical-align:middle; cursor:help;
+    }
+    .tooltip svg{ width:18px; height:18px; stroke:var(--text-tertiary); }
+    .tooltip .tooltiptext{
+      visibility:hidden; width:260px; background-color:#111827; color:white; text-align:left; border-radius:8px; padding:8px 12px;
+      position:absolute; z-index:10; bottom:135%; left:50%; transform:translateX(-50%); font-size:.8125rem; line-height:1.4;
+      opacity:0; transition:opacity .2s ease; box-shadow:var(--shadow-lg);
+    }
+    .tooltip:hover .tooltiptext{ visibility:visible; opacity:1; }
+
+    .full-width{ grid-column:1 / -1; }
+
+    @media (max-width:768px){
+      .container{ padding:16px; }
+      .header{ padding:32px 16px 24px; }
+      .header h1{ font-size:1.5rem; }
+      .calculator-grid{ grid-template-columns:1fr; gap:16px; }
+      .score-value{ font-size:2rem; }
+      .stats-grid{ grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>PURK Score Calculator</h1>
+      <p>Evidence-based risk stratification tool for posterior urethral valve outcomes</p>
+    </div>
+
+    <div class="calculator-grid">
+      <!-- PURK Score Calculator -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" aria-hidden="true">
+            <!-- chart-line icon -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v18h18"/>
+              <path d="M19 9l-5 5-4-4-4 4"/>
+            </svg>
+          </div>
+          <div class="card-title-group">
+            <h2 class="card-title">PURK Score</h2>
+            <p class="card-subtitle">Calculate at initial presentation</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="checkbox-wrapper">
+            <input type="checkbox" id="baseline-cr" value="2" />
+            <label for="baseline-cr" class="checkbox-label">
+              Baseline Cr &gt;150 µmol/L (1.7 mg/dL)
+              <span class="tooltip" aria-label="More info" role="img">
+                <!-- info icon -->
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <span class="tooltiptext">Serum creatinine measured &gt;72 hours after birth</span>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="checkbox-wrapper">
+            <input type="checkbox" id="failure-thrive" value="2" />
+            <label for="failure-thrive" class="checkbox-label">
+              Failure to thrive
+              <span class="tooltip" aria-label="More info" role="img">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <span class="tooltiptext">Weight below 3rd percentile or crossing 2 major percentile lines</span>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="checkbox-wrapper">
+            <input type="checkbox" id="high-vur" value="1" />
+            <label for="high-vur" class="checkbox-label">
+              High grade VUR on VCUG
+              <span class="tooltip" aria-label="More info" role="img">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <span class="tooltiptext">Grade III-V vesicoureteral reflux on voiding cystourethrogram</span>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="checkbox-wrapper">
+            <input type="checkbox" id="renal-dysplasia" value="1" />
+            <label for="renal-dysplasia" class="checkbox-label">
+              Renal dysplasia on ultrasound
+              <span class="tooltip" aria-label="More info" role="img">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <span class="tooltiptext">Increased echogenicity, loss of corticomedullary differentiation, or cysts</span>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <button class="btn" onclick="calculatePURK()">Calculate PURK Score</button>
+
+        <div id="purk-result" style="display:none" class="result-section" aria-live="polite">
+          <div class="score-display">
+            <div class="score-value" id="purk-score">0</div>
+            <div class="score-label">Total Score</div>
+          </div>
+          <div style="text-align:center;">
+            <span id="purk-risk" class="risk-badge">
+              <!-- shield icon inside badge; color derives from class -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              <span>Risk</span>
+            </span>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value" id="ckd3-1yr">-</div>
+              <div class="stat-label">CKD ≥3 at 1yr</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="ckd3-5yr">-</div>
+              <div class="stat-label">CKD ≥3 at 5yr</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="ckd3-10yr">-</div>
+              <div class="stat-label">CKD ≥3 at 10yr</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCN1 Calculator -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" aria-hidden="true">
+            <!-- flask icon -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M10 2v6l-5.5 9.5A3 3 0 0 0 7 22h10a3 3 0 0 0 2.5-4.5L14 8V2"/>
+              <path d="M8.5 2h7"/>
+            </svg>
+          </div>
+          <div class="card-title-group">
+            <h2 class="card-title">SCN1 Risk Group</h2>
+            <p class="card-subtitle">Calculate at 1 year of age</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="scn1-value">Serum Creatinine Nadir (First Year)</label>
+          <div class="input-group">
+            <input type="number" id="scn1-value" class="input-field" step="0.01" min="0" placeholder="Enter value" />
+            <select id="scn1-unit" aria-label="SCN1 unit">
+              <option value="mg/dL">mg/dL</option>
+              <option value="µmol/L">µmol/L</option>
+            </select>
+          </div>
+        </div>
+
+        <button class="btn" onclick="calculateSCN1()">Calculate SCN1 Risk</button>
+
+        <div id="scn1-result" style="display:none" class="result-section" aria-live="polite">
+          <div style="text-align:center;">
+            <span id="scn1-risk" class="risk-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              <span>Risk</span>
+            </span>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value" id="scn1-ckd3-5yr">-</div>
+              <div class="stat-label">CKD ≥3 at 5yr</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="scn1-ckd3-10yr">-</div>
+              <div class="stat-label">CKD ≥3 at 10yr</div>
+            </div>
+          </div>
+          <div class="info-panel">
+            <strong>Risk Thresholds</strong>
+            <p>Low: &lt;0.4 mg/dL (&lt;35 µmol/L)</p>
+            <p>Intermediate: 0.4–0.99 mg/dL (35–88 µmol/L)</p>
+            <p>High: ≥1.0 mg/dL (≥88 µmol/L)</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- PURK+ Combined Score -->
+      <div class="card full-width">
+        <div class="card-header">
+          <div class="card-icon" aria-hidden="true">
+            <!-- target icon -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <circle cx="12" cy="12" r="6"></circle>
+              <circle cx="12" cy="12" r="2"></circle>
+            </svg>
+          </div>
+          <div class="card-title-group">
+            <h2 class="card-title">PURK+ Combined Score</h2>
+            <p class="card-subtitle">Enhanced risk stratification at 1 year using both PURK and SCN1</p>
+          </div>
+        </div>
+
+        <div id="purkplus-section">
+          <p style="color:var(--text-secondary); margin-bottom:20px; text-align:center;">
+            Calculate both PURK Score and SCN1 Risk Group above to determine PURK+ risk classification
+          </p>
+
+          <div id="purkplus-result" style="display:none" class="result-section" aria-live="polite">
+            <div style="text-align:center;">
+              <span id="purkplus-risk" class="risk-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                <span>Risk</span>
+              </span>
+            </div>
+
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-value" id="purkplus-rrt">-</div>
+                <div class="stat-label">RRT Event Rate</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value" id="purkplus-ckd3-5yr">-</div>
+                <div class="stat-label">CKD ≥3 at 5yr</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value" id="purkplus-ckd3-10yr">-</div>
+                <div class="stat-label">CKD ≥3 at 10yr</div>
+              </div>
+            </div>
+
+            <h3 style="margin-top:24px; margin-bottom:12px; font-size:1rem; font-weight:600; color:var(--text-primary);">Risk Stratification Matrix</h3>
+            <table class="matrix-table" aria-label="PURK by SCN1 risk matrix">
+              <thead>
+                <tr>
+                  <th>PURK / SCN1</th>
+                  <th>Low SCN1<br><span style="font-weight:400; font-size:.75rem;">(&lt;0.4 mg/dL)</span></th>
+                  <th>Intermediate SCN1<br><span style="font-weight:400; font-size:.75rem;">(0.4–0.99 mg/dL)</span></th>
+                  <th>High SCN1<br><span style="font-weight:400; font-size:.75rem;">(≥1.0 mg/dL)</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th>Low PURK (0–1)</th>
+                  <td class="cell-low">Low Risk</td>
+                  <td class="cell-intermediate">Intermediate</td>
+                  <td class="cell-high">High Risk</td>
+                </tr>
+                <tr>
+                  <th>Intermediate PURK (2–3)</th>
+                  <td class="cell-low">Low Risk</td>
+                  <td class="cell-intermediate">Intermediate</td>
+                  <td class="cell-high">High Risk</td>
+                </tr>
+                <tr>
+                  <th>High PURK (≥4)</th>
+                  <td class="cell-intermediate">Intermediate</td>
+                  <td class="cell-high">High Risk</td>
+                  <td class="cell-high">High Risk</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="info-panel" style="margin-top:20px;">
+              <strong>Clinical Interpretation</strong>
+              <p><span style="color:var(--success); font-weight:600;">Low Risk:</span> Standard monitoring, excellent prognosis</p>
+              <p><span style="color:var(--warning); font-weight:600;">Intermediate Risk:</span> Enhanced surveillance, consider early interventions</p>
+              <p><span style="color:var(--danger); font-weight:600;">High Risk:</span> Intensive monitoring, multidisciplinary care, prepare for potential RRT</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Survival Analysis -->
+      <div class="card full-width">
+        <div class="card-header">
+          <div class="card-icon" aria-hidden="true">
+            <!-- trend-up icon -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 17 9 11 13 15 21 7"></polyline>
+              <polyline points="14 7 21 7 21 14"></polyline>
+            </svg>
+          </div>
+          <div class="card-title-group">
+            <h2 class="card-title">Survival Analysis</h2>
+            <p class="card-subtitle">Kaplan-Meier curves for time to Renal Replacement Therapy</p>
+          </div>
+        </div>
+
+        <div class="tabs" role="tablist" aria-label="Survival Analysis Tabs">
+          <button class="tab active" onclick="showTab('purk-km')" role="tab" aria-selected="true">PURK Risk Groups</button>
+          <button class="tab" onclick="showTab('scn1-km')" role="tab" aria-selected="false">SCN1 Risk Groups</button>
+          <button class="tab" onclick="showTab('purkplus-km')" role="tab" aria-selected="false">PURK+ Risk Groups</button>
+        </div>
+
+        <div id="purk-km" class="tab-content active">
+          <div class="chart-container">
+            <div id="purk-km-chart"></div>
+          </div>
+        </div>
+
+        <div id="scn1-km" class="tab-content">
+          <div class="chart-container">
+            <div id="scn1-km-chart"></div>
+          </div>
+        </div>
+
+        <div id="purkplus-km" class="tab-content">
+          <div class="chart-container">
+            <div id="purkplus-km-chart"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentPURKScore = null;
+    let currentPURKRisk = null;
+    let currentSCN1Risk = null;
+
+    document.addEventListener('DOMContentLoaded', function(){
+      if (typeof Plotly !== 'undefined') {
+        drawPURKKaplanMeier();
+        drawSCN1KaplanMeier();
+        drawPURKPlusKaplanMeier();
+      }
+    });
+
+    function calculatePURK(){
+      const checkboxes = document.querySelectorAll('#baseline-cr, #failure-thrive, #high-vur, #renal-dysplasia');
+      let score = 0;
+      checkboxes.forEach(cb => { if (cb.checked) score += parseInt(cb.value); });
+      currentPURKScore = score;
+
+      let riskGroup='', riskClass='', ckd1yr='', ckd5yr='', ckd10yr='';
+      if (score <= 1){
+        riskGroup='Low Risk'; riskClass='risk-low'; currentPURKRisk='low';
+        ckd1yr='9.0%'; ckd5yr='14.4%'; ckd10yr='33.3%';
+      } else if (score <= 3){
+        riskGroup='Intermediate Risk'; riskClass='risk-intermediate'; currentPURKRisk='intermediate';
+        ckd1yr='28.4%'; ckd5yr='37.5%'; ckd10yr='57.1%';
+      } else {
+        riskGroup='High Risk'; riskClass='risk-high'; currentPURKRisk='high';
+        ckd1yr='61.8%'; ckd5yr='68.4%'; ckd10yr='86.8%';
+      }
+
+      document.getElementById('purk-score').textContent = score + '/6';
+      const badge = document.getElementById('purk-risk');
+      badge.className = 'risk-badge ' + riskClass;
+      badge.lastElementChild.textContent = riskGroup; // update the text span
+      document.getElementById('ckd3-1yr').textContent = ckd1yr;
+      document.getElementById('ckd3-5yr').textContent = ckd5yr;
+      document.getElementById('ckd3-10yr').textContent = ckd10yr;
+      document.getElementById('purk-result').style.display = 'block';
+
+      checkPURKPlus();
+    }
+
+    function calculateSCN1(){
+      const value = parseFloat(document.getElementById('scn1-value').value);
+      const unit = document.getElementById('scn1-unit').value;
+      if (isNaN(value) || value < 0){ alert('Please enter a valid creatinine value'); return; }
+
+      let valueInMgDL = (unit === 'µmol/L') ? value / 88.4 : value;
+
+      let riskGroup='', riskClass='', ckd5yr='', ckd10yr='';
+      if (valueInMgDL < 0.4){
+        riskGroup='Low Risk'; riskClass='risk-low'; currentSCN1Risk='low';
+        ckd5yr='3.2%'; ckd10yr='10.5%';
+      } else if (valueInMgDL < 1.0){
+        riskGroup='Intermediate Risk'; riskClass='risk-intermediate'; currentSCN1Risk='intermediate';
+        ckd5yr='20.0%'; ckd10yr='41.2%';
+      } else {
+        riskGroup='High Risk'; riskClass='risk-high'; currentSCN1Risk='high';
+        ckd5yr='50.0%'; ckd10yr='100%';
+      }
+
+      const badge = document.getElementById('scn1-risk');
+      badge.className = 'risk-badge ' + riskClass;
+      badge.lastElementChild.textContent = `${riskGroup} (SCN1: ${valueInMgDL.toFixed(2)} mg/dL)`;
+      document.getElementById('scn1-ckd3-5yr').textContent = ckd5yr;
+      document.getElementById('scn1-ckd3-10yr').textContent = ckd10yr;
+      document.getElementById('scn1-result').style.display = 'block';
+
+      checkPURKPlus();
+    }
+
+    function checkPURKPlus(){
+      if (currentPURKRisk && currentSCN1Risk) calculatePURKPlus();
+    }
+
+    function calculatePURKPlus(){
+      const riskMatrix = {
+        'low': { 'low':'low', 'intermediate':'intermediate', 'high':'high' },
+        'intermediate': { 'low':'low', 'intermediate':'intermediate', 'high':'high' },
+        'high': { 'low':'intermediate', 'intermediate':'high', 'high':'high' }
+      };
+      const purkPlusRisk = riskMatrix[currentPURKRisk][currentSCN1Risk];
+
+      let riskGroup='', riskClass='', rrtRate='', ckd5yr='', ckd10yr='';
+      if (purkPlusRisk === 'low'){
+        riskGroup='Low Risk'; riskClass='risk-low'; rrtRate='0.8%'; ckd5yr='2.2%'; ckd10yr='10.3%';
+      } else if (purkPlusRisk === 'intermediate'){
+        riskGroup='Intermediate Risk'; riskClass='risk-intermediate'; rrtRate='14.7%'; ckd5yr='13.2%'; ckd10yr='22.7%';
+      } else {
+        riskGroup='High Risk'; riskClass='risk-high'; rrtRate='53.1%'; ckd5yr='57.1%'; ckd10yr='100%';
+      }
+
+      const badge = document.getElementById('purkplus-risk');
+      badge.className = 'risk-badge ' + riskClass;
+      badge.lastElementChild.textContent = 'PURK+ ' + riskGroup;
+
+      document.getElementById('purkplus-rrt').textContent = rrtRate;
+      document.getElementById('purkplus-ckd3-5yr').textContent = ckd5yr;
+      document.getElementById('purkplus-ckd3-10yr').textContent = ckd10yr;
+      document.getElementById('purkplus-result').style.display = 'block';
+
+      highlightMatrixCell();
+    }
+
+    function highlightMatrixCell(){
+      const cells = document.querySelectorAll('.matrix-table td');
+      cells.forEach(cell => { cell.style.outline='none'; cell.style.fontWeight='500'; });
+
+      let row, col;
+      if (currentPURKRisk === 'low') row = 1;
+      else if (currentPURKRisk === 'intermediate') row = 2;
+      else row = 3;
+
+      if (currentSCN1Risk === 'low') col = 1;
+      else if (currentSCN1Risk === 'intermediate') col = 2;
+      else col = 3;
+
+      const targetCell = document.querySelector(`.matrix-table tbody tr:nth-child(${row}) td:nth-child(${col+1})`);
+      if (targetCell){
+        targetCell.style.outline='2px solid #da7756';
+        targetCell.style.fontWeight='700';
+      }
+    }
+
+    function showTab(tabId){
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      // set active state on the clicked button robustly
+      const buttons = Array.from(document.querySelectorAll('.tabs .tab'));
+      const match = buttons.find(btn => btn.getAttribute('onclick')?.includes(`'${tabId}'`));
+      if (match) match.classList.add('active');
+    }
+
+    /* Plotly chart renders keep your original data & palette */
+    function drawPURKKaplanMeier(){
+      const timePoints=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20];
+      const lowRisk={x:timePoints,y:[100,99.5,99.5,99.0,99.0,98.5,98.5,98.0,98.0,97.5,97.5,97.0,97.0,96.5,96.5,96.0,96.0,95.5,95.5,95.0,95.0],name:'Low Risk (0-1)',mode:'lines',line:{color:'#10a37f',width:2.5},hovertemplate:'Low Risk<br>Time: %{x} years<br>Survival: %{y:.1f}%<extra></extra>'};
+      const intermediateRisk={x:timePoints,y:[100,92,90,88,85,83,80,78,75,73,70,68,65,63,60,58,55,53,50,48,45],name:'Intermediate Risk (2-3)',mode:'lines',line:{color:'#f39c12',width:2.5},hovertemplate:'Intermediate Risk<br>Time: %{x} years<br>Survival: %{y:.1f}%<extra></extra>'};
+      const highRisk={x:timePoints,y:[100,75,65,55,50,45,40,35,30,25,20,18,15,13,10,8,5,3,2,1,0],name:'High Risk (≥4)',mode:'lines',line:{color:'#e74c3c',width:2.5},hovertemplate:'High Risk<br>Time: %{x} years<br>Survival: %{y:.1f}%<extra></extra>'};
+
+      const layout={
+        xaxis:{title:'Time from Diagnosis (Years)',showgrid:true,gridcolor:'#e5e7eb',range:[0,20],zeroline:false},
+        yaxis:{title:'RRT-Free Survival (%)',showgrid:true,gridcolor:'#e5e7eb',range:[0,100],zeroline:false},
+        hovermode:'x unified', showlegend:true,
+        legend:{x:0.7,y:0.9,bgcolor:'rgba(255,255,255,0.9)',bordercolor:'#e5e7eb',borderwidth:1},
+        margin:{l:60,r:30,t:30,b:60}, plot_bgcolor:'#fafafa', paper_bgcolor:'transparent',
+        font:{family:'var(--font-sans)', size:12, color:'#2d333a'}
+      };
+      Plotly.newPlot('purk-km-chart',[lowRisk,intermediateRisk,highRisk],layout,{responsive:true});
+    }
+
+    function drawSCN1KaplanMeier(){
+      const timePoints=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20];
+      const lowRisk={x:timePoints,y:[100,99.5,99.0,98.5,98.0,97.5,97.0,96.5,96.0,95.5,95.0,94.5,94.0,93.5,93.0,92.5,92.0,91.5,91.0,90.5],name:'Low Risk (&lt;0.4 mg/dL)',mode:'lines',line:{color:'#10a37f',width:2.5},hovertemplate:'Low Risk<br>Time: %{x} years<br>Survival: %{y:.1f}%<extra></extra>'};
+      const intermediateRisk={x:timePoints,y:[100,92,85,78,70,65,60,55,50,45,40,35,30,25,20,18,15,13,10,8],name:'Intermediate Risk (0.4–0.99 mg/dL)',mode:'lines',line:{color:'#f39c12',width:2.5},hovertemplate:'Intermediate Risk<br>Time: %{x} years<br>Survival: %{y:.1f}%<extra></extra>'};
+      const highRisk={x:timePoints,y:[100,60,40,25,15,10,8,5,3,2,1,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5],name:'High Risk (≥1.0 mg/dL)',mode:'lines',line:{color:'#e74c3c',width:2.5},hovertemplate:'High Risk<br>Time: %{x} years<br>Survival: %{y:.1f}%<extra></extra>'};
+
+      const layout={
+        xaxis:{title:'Time from 1 Year of Age (Years)',showgrid:true,gridcolor:'#e5e7eb',range:[1,20],zeroline:false},
+        yaxis:{title:'RRT-Free Survival (%)',showgrid:true,gridcolor:'#e5e7eb',range:[0,100],zeroline:false},
+        hovermode:'x unified', showlegend:true,
+        legend:{x:0.55,y:0.9,bgcolor:'rgba(255,255,255,0.9)',bordercolor:'#e5e7eb',borderwidth:1},
+        margin:{l:60,r:30,t:30,b:60}, plot_bgcolor:'#fafafa', paper_bgcolor:'transparent',
+        font:{family:'var(--font-sans)', size:12, color:'#2d333a'}
+      };
+      Plotly.newPlot('scn1-km-chart',[lowRisk,intermediateRisk,highRisk],layout,{responsive:true});
+    }
+
+    function drawPURKPlusKaplanMeier(){
+      const timePoints=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20];
+      const lowRisk={x:timePoints,y:[100,100,99.5,99.3,99.2,99.0,98.8,98.5,98.3,98.0,97.8,97.5,97.3,97.0,96.8,96.5,96.3,96.0,95.8,95.5,95.3],name:'Low Risk',mode:'lines',line:{color:'#10a37f',width:2.5},hovertemplate:'Low Risk<br>Time: %{x} years<br>Survival: %{y:.1f}%<extra></extra>'};
+      const intermediateRisk={x:timePoints,y:[100,95,90,85,82,78,75,70,65,60,55,50,45,40,35,30,25,20,15,10,5],name:'Intermediate Risk',mode:'lines',line:{color:'#f39c12',width:2.5},hovertemplate:'Intermediate Risk<br>Time: %{x} years<br>Survival: %{y:.1f}%<extra></extra>'};
+      const highRisk={x:timePoints,y:[100,85,70,55,45,35,28,22,18,15,12,10,8,6,5,4,3,2,1,0.5,0],name:'High Risk',mode:'lines',line:{color:'#e74c3c',width:2.5},hovertemplate:'High Risk<br>Time: %{x} years<br>Survival: %{y:.1f}%<extra></extra>'};
+
+      const layout={
+        xaxis:{title:'Time from Diagnosis (Years)',showgrid:true,gridcolor:'#e5e7eb',range:[0,20],zeroline:false},
+        yaxis:{title:'RRT-Free Survival (%)',showgrid:true,gridcolor:'#e5e7eb',range:[0,100],zeroline:false},
+        hovermode:'x unified', showlegend:true,
+        legend:{x:0.7,y:0.9,bgcolor:'rgba(255,255,255,0.9)',bordercolor:'#e5e7eb',borderwidth:1},
+        margin:{l:60,r:30,t:30,b:60}, plot_bgcolor:'#fafafa', paper_bgcolor:'transparent',
+        font:{family:'var(--font-sans)', size:12, color:'#2d333a'},
+        }]
+      };
+      Plotly.newPlot('purkplus-km-chart',[lowRisk,intermediateRisk,highRisk],layout,{responsive:true});
+    }
+  </script>
+</body>
+</html>
