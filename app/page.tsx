@@ -1,7 +1,36 @@
 "use client";
+import { useMemo, useState } from "react";
+import {
+  calculatePURKScore,
+  purkRiskGroup,
+  scn1RiskGroup,
+  purkPlusRisk,
+  normalizeCreatinine,
+  type Unit,
+} from "@/components/calculations";
 
-import React, { useMemo, useState } from "react";
-import { AlertCircle, Calculator, Info, Github } from "lucide-react";
+const [cr72h, setCr72h] = useState<number | undefined>();
+const [cr72hUnit, setCr72hUnit] = useState<Unit>("mg/dL");
+
+const cr72hNorm = useMemo(
+  () => (cr72h == null ? null : normalizeCreatinine(cr72h, cr72hUnit)),
+  [cr72h, cr72hUnit]
+);
+
+const purkScore = useMemo(
+  () =>
+    calculatePURKScore({
+      creatinine72h_mgdl: cr72hNorm?.mgdl ?? null,
+      failureToThrive: ftt,
+      highGradeVUR: vur,
+      renalDysplasia: dysplasia,
+    }),
+  [cr72hNorm, ftt, vur, dysplasia]
+);
+
+const purkGroup = purkRiskGroup(purkScore);
+const scn1Group = scn1RiskGroup(scn1Norm?.mgdl ?? null);
+const combined = purkPlusRisk(purkGroup, scn1Group);
 
 /**
  * PURK + SCN1 (PURK+) Risk Calculator — v2 (polished UI)
